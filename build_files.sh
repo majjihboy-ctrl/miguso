@@ -11,6 +11,6 @@ else
     PY=python3
 fi
 
-$PY -m pip install --upgrade pip
-$PY -m pip install -r requirements.txt
+$PY -m pip install --upgrade pip --break-system-packages
+$PY -m pip install -r requirements.txt --break-system-packages
 $PY manage.py collectstatic --noinput --clear
