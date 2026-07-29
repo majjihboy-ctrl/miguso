@@ -1,0 +1,58 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}Upgrade to VIP — Matchday Pro{% endblock %}
+
+{% block content %}
+<div class="upgrade-page">
+    <h1 style="font-size:1.8rem;margin-bottom:0.5rem;">Upgrade to VIP</h1>
+    <p style="color:var(--text-muted);margin-bottom:2rem;">Unlock premium accumulators, high-confidence singles, and detailed model analysis.</p>
+
+    <div class="pricing-row">
+        <div class="price-card">
+            <h3>Weekly Pass</h3>
+            <div class="price">$9.99<span>/week</span></div>
+            <ul>
+                <li>All VIP Singles</li>
+                <li>All VIP Accumulators</li>
+                <li>Email notifications</li>
+            </ul>
+        </div>
+        <div class="price-card featured">
+            <h3>Monthly Pass</h3>
+            <div class="price">$29.99<span>/month</span></div>
+            <ul>
+                <li>Everything in Weekly</li>
+                <li>Priority support</li>
+                <li>Full stats dashboard</li>
+            </ul>
+        </div>
+    </div>
+
+    {% if user.is_authenticated %}
+        {% if user.profile.is_vip_active %}
+            <div style="background:var(--green-light);color:#14532d;padding:1rem;border-radius:4px;font-weight:700;">
+                ✓ You are already a VIP member until {{ user.profile.vip_expires_at|date:"F d, Y" }}.
+            </div>
+        {% else %}
+            <form action="{% url 'checkout' %}" method="post" style="margin-top:1.5rem;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-gold" style="padding:0.875rem 2.5rem;font-size:1rem;">Pay $29.99 — Get VIP Now</button>
+            </form>
+            <p style="color:var(--text-muted);margin-top:1rem;font-size:0.85rem;">Secure payment via Stripe. Instant access.</p>
+
+            <hr style="border:none;border-top:1px solid var(--border);margin:2rem 0;">
+
+            <p style="color:var(--text-muted);font-size:0.9rem;">Can't pay online? Request manual activation.</p>
+            <form method="post" action="{% url 'upgrade' %}" style="margin-top:0.5rem;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline" style="font-size:0.85rem;">Request Manual Upgrade</button>
+            </form>
+            {% if user.profile.upgrade_requested %}
+                <p style="color:var(--text-muted);margin-top:0.75rem;font-size:0.9rem;">Your request is pending admin approval.</p>
+            {% endif %}
+        {% endif %}
+    {% else %}
+        <a href="{% url 'login' %}?next={{ request.path }}" class="btn btn-green" style="padding:0.875rem 2.5rem;font-size:1rem;">Login to Upgrade</a>
+    {% endif %}
+</div>
+{% endblock %}

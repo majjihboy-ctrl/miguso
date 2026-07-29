@@ -1,0 +1,13 @@
+Django>=5.2,<6.1
+scipy
+python-decouple
+psycopg2-binary
+dj-database-url
+gunicorn
+whitenoise
+redis
+django-redis
+django-ratelimit
+stripe
+requests
+django-import-export

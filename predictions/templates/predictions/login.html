@@ -1,0 +1,18 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}Login — Matchday Pro{% endblock %}
+
+{% block content %}
+<div class="auth-box">
+    <h1>Log In</h1>
+    <form method="post" action="{% url 'login' %}">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-green">Log In</button>
+        <input type="hidden" name="next" value="{{ next|default:'/' }}">
+    </form>
+    <div class="auth-switch">
+        No account? <a href="{% url 'register' %}">Register</a>
+    </div>
+</div>
+{% endblock %}

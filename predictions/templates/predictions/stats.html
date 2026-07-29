@@ -1,0 +1,85 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}Performance Stats — Matchday Pro{% endblock %}
+
+{% block content %}
+<div class="page-title">Performance Statistics</div>
+
+<div class="stats-grid">
+    <div class="stat-item">
+        <div class="value">{{ total }}</div>
+        <div class="label">Tips Settled</div>
+    </div>
+    <div class="stat-item">
+        <div class="value good">{{ won }}</div>
+        <div class="label">Won</div>
+    </div>
+    <div class="stat-item">
+        <div class="value bad">{{ lost }}</div>
+        <div class="label">Lost</div>
+    </div>
+    <div class="stat-item">
+        <div class="value">{{ win_rate }}%</div>
+        <div class="label">Win Rate</div>
+    </div>
+    <div class="stat-item">
+        <div class="value {% if total_profit > 0 %}good{% elif total_profit < 0 %}bad{% endif %}">
+            {% if total_profit > 0 %}+{% endif %}{{ total_profit|floatformat:2 }}
+        </div>
+        <div class="label">Total Profit (units)</div>
+    </div>
+    <div class="stat-item">
+        <div class="value">{{ roi|floatformat:1 }}%</div>
+        <div class="label">ROI</div>
+    </div>
+    <div class="stat-item">
+        <div class="value">{{ avg_odds|floatformat:2 }}</div>
+        <div class="label">Avg Odds</div>
+    </div>
+    <div class="stat-item">
+        <div class="value">{{ avg_stake|floatformat:2 }}</div>
+        <div class="label">Avg Stake</div>
+    </div>
+</div>
+
+<!-- Recent Form -->
+<div class="detail-panel">
+    <div class="panel-header">
+        <h3 style="font-size:0.9rem;">Recent Form (Last 10)</h3>
+    </div>
+    <div class="panel-body">
+        <div class="form-strip">
+            {% for tip in recent_form %}
+                <div class="form-dot {% if tip.status == 'won' %}w{% else %}l{% endif %}">
+                    {% if tip.status == 'won' %}W{% else %}L{% endif %}
+                </div>
+            {% empty %}
+                <span style="color:var(--text-muted);">No data</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Performance — FIXED: Now a sibling, not nested -->
+<div class="detail-panel" style="margin-top:1.5rem;">
+    <div class="panel-header">
+        <h3 style="font-size:0.9rem;">Monthly Performance</h3>
+    </div>
+    <div class="panel-body">
+        <div class="chart-bars">
+            {% for month in monthly_stats %}
+            <div class="chart-col">
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar {% if month.profit > 0 %}positive{% else %}negative{% endif %}"
+                         style="height: {{ month.height }}%;"></div>
+                </div>
+                <div class="chart-label">{{ month.short_name }}</div>
+                <div class="chart-value">{{ month.profit|floatformat:1 }}</div>
+            </div>
+            {% empty %}
+            <span style="color:var(--text-muted);">No monthly data available.</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

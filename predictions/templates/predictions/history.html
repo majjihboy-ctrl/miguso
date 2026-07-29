@@ -1,0 +1,62 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}Results History — Matchday Pro{% endblock %}
+
+{% block content %}
+<div class="page-title">Results History</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Fixture / Tip</th>
+            <th>Prediction</th>
+            <th class="center">Odds</th>
+            <th class="center">Stake</th>
+            <th class="center">Result</th>
+            <th class="right">Profit / Loss</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tip in tips %}
+        <tr>
+            <td class="match-time">{{ tip.created_at|date:"M d" }}<br><span style="font-size:0.75rem;">{{ tip.created_at|date:"Y" }}</span></td>
+            <td>
+                {% if tip.bet_type == 'single' %}
+                    <div class="match-teams">{{ tip.legs.first.fixture_text }}</div>
+                    <div class="match-time">{{ tip.legs.first.prediction }}</div>
+                {% else %}
+                    <div class="match-teams">{{ tip.title|default:"Accumulator" }}</div>
+                    <div class="match-time">{{ tip.legs.count }} legs</div>
+                {% endif %}
+            </td>
+            <td>
+                <span class="prediction-tag {% if tip.status == 'won' %}tag-green{% elif tip.status == 'lost' %}tag-amber{% else %}tag-blue{% endif %}">
+                    {{ tip.status|upper }}
+                </span>
+            </td>
+            <td class="center odds-box">{{ tip.total_odds|default:"—" }}</td>
+            <td class="center">{{ tip.stake }}</td>
+            <td class="center">
+                {% if tip.status == 'won' %}
+                    <span class="result-won">WON</span>
+                {% elif tip.status == 'lost' %}
+                    <span class="result-lost">LOST</span>
+                {% else %}
+                    <span class="result-pending">VOID</span>
+                {% endif %}
+            </td>
+            <td class="right {% if tip.profit > 0 %}profit-pos{% elif tip.profit < 0 %}profit-neg{% endif %}">
+                {% if tip.profit > 0 %}+{% endif %}{{ tip.profit|floatformat:2 }}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" style="text-align:center;color:var(--text-muted);padding:3rem;">
+                No settled tips yet.
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

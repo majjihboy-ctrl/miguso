@@ -1,0 +1,302 @@
+{% extends "predictions/base.html" %}
+
+{% block title %}Football Predictions & Tips — Matchday Pro{% endblock %}
+{% block meta_desc %}Expert football predictions, free tips, VIP accumulators, and data-driven betting analysis.{% endblock %}
+
+{% block content %}
+
+<section class="hero">
+    <h1>Expert Football Predictions</h1>
+    <p>Data-driven tips, accumulators, and statistical analysis for serious bettors.</p>
+    <div class="hero-actions">
+        <a href="{% url 'tips_list' 'free' %}" class="btn btn-green">Today's Free Tips</a>
+        <a href="{% url 'upgrade' %}" class="btn btn-outline-light">Get VIP Access</a>
+    </div>
+</section>
+
+<section class="stats-strip">
+    <div class="stat-box">
+        <div class="stat-value">{{ win_rate }}%</div>
+        <div class="stat-label">Win Rate</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-value {% if total_profit > 0 %}pos{% elif total_profit < 0 %}neg{% endif %}">
+            {% if total_profit > 0 %}+{% endif %}{{ total_profit|floatformat:2 }}
+        </div>
+        <div class="stat-label">Units Profit</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-value">{{ total_tips }}</div>
+        <div class="stat-label">Tips Settled</div>
+    </div>
+    <div class="stat-box">
+        <div class="stat-value">{{ roi|floatformat:1 }}%</div>
+        <div class="stat-label">ROI</div>
+    </div>
+</section>
+
+<div class="section-header">
+    <h2>⚽ Today's Matches</h2>
+    <!-- NOTE: matches with status="live" are intentionally shown separately in the ticker at
+         the top of base.html; the exclusion here is expected once that ticker is in place. -->
+    <span style="font-size:0.85rem;color:var(--text-muted);">{{ todays_matches|length }} fixtures</span>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th class="hide-mobile">Time</th>
+            <th>League</th>
+            <th>Match</th>
+            <th class="center hide-mobile">Model xG</th>
+            <th class="center hide-mobile">H2H</th>
+            <th class="center hide-mobile">Form</th>
+            <th class="center">1X2</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for match in todays_matches %}
+        <tr class="clickable-row" data-href="{% url 'tip_detail' match.id %}">
+            <td class="match-time hide-mobile">{{ match.kickoff|date:"H:i" }}</td>
+            <td>
+                <div class="league-cell">
+                    <span class="flag"></span>
+                    <span class="league-name">{{ match.league.name }}</span>
+                </div>
+            </td>
+            <td>
+                <div class="match-teams">{{ match.home_team }} vs {{ match.away_team }}</div>
+                <div class="match-time hide-mobile">{{ match.kickoff|date:"D, M d" }}</div>
+            </td>
+            <td class="center hide-mobile">
+                {% if match.pred_home_goals %}
+                <span class="model-mini">
+                    <span class="model-xg">{{ match.pred_home_goals|floatformat:1 }}</span>
+                    <span class="model-sep">-</span>
+                    <span class="model-xg">{{ match.pred_away_goals|floatformat:1 }}</span>
+                </span>
+                {% else %}—{% endif %}
+            </td>
+            <td class="center hide-mobile">
+                {% if match.h2h_home_wins is not None %}
+                <span style="font-size:0.75rem;">
+                    <span style="color:var(--green);">{{ match.h2h_home_wins }}</span>
+                    <span style="color:var(--text-muted);">{{ match.h2h_draws }}</span>
+                    <span style="color:var(--red);">{{ match.h2h_away_wins }}</span>
+                </span>
+                {% else %}—{% endif %}
+            </td>
+            <td class="center hide-mobile">
+                {% if match.home_form %}
+                <div class="form-streak" title="Home: {{ match.home_form }}">
+                    {% for char in match.home_form %}
+                    <span class="streak-block {% if char == 'W' %}win{% elif char == 'L' %}loss{% else %}draw{% endif %}"></span>
+                    {% endfor %}
+                </div>
+                {% else %}—{% endif %}
+            </td>
+            <td class="center">
+                {% if match.bookmaker_odds_home %}
+                <div style="font-size:0.75rem;display:flex;gap:0.4rem;justify-content:center;">
+                    <span style="color:var(--green);font-weight:700;">{{ match.bookmaker_odds_home|floatformat:2 }}</span>
+                    <span style="color:var(--amber);">{{ match.bookmaker_odds_draw|floatformat:2 }}</span>
+                    <span style="color:var(--red);">{{ match.bookmaker_odds_away|floatformat:2 }}</span>
+                </div>
+                {% else %}
+                <span class="prob-text">—</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+            <tr><td colspan="7" class="empty-cell">No matches scheduled today.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="section-header">
+    <h2>🔥 Free Tips — Today</h2>
+    <a href="{% url 'tips_list' 'free' %}" class="section-link">View All →</a>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th class="hide-mobile">Time</th>
+            <th>League</th>
+            <th>Match</th>
+            <th>Prediction</th>
+            <th class="center">Odds</th>
+            <th class="center hide-mobile">Strength</th>
+            <th class="center">Result</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tip in featured_free %}
+            {% with leg=tip.legs.first %}
+            <tr class="clickable-row" data-href="{% url 'tip_detail' tip.id %}">
+                <td class="match-time hide-mobile">{{ leg.kickoff|default:tip.created_at|date:"H:i" }}</td>
+                <td>
+                    <div class="league-cell">
+                        <span class="flag"></span>
+                        <span class="league-name">{{ leg.league|default:"Premier Division" }}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="match-teams">{{ leg.fixture_text }}</div>
+                    <div class="match-time hide-mobile">{{ leg.kickoff|default:tip.created_at|date:"D, M d" }}</div>
+                </td>
+                <td><span class="prediction-tag tag-green">{{ leg.prediction }}</span></td>
+                <td class="center odds-box">{{ leg.odds }}</td>
+                <td class="center hide-mobile">
+                    {% with confidence=leg.model_home_prob|default:leg.model_away_prob|default:0 %}
+                    {% widthratio confidence 1 100 as confidence_pct %}
+                    <div class="confidence-ring">
+                        <svg width="40" height="40" viewBox="0 0 40 40">
+                            <circle class="bg" cx="20" cy="20" r="16"></circle>
+                            <circle class="progress" cx="20" cy="20" r="16"
+                                stroke-dasharray="100.5"
+                                style="stroke-dashoffset: calc(100.5 - (100.5 * {{ confidence_pct }} / 100));"></circle>
+                        </svg>
+                        <span class="confidence-text">{{ confidence_pct }}%</span>
+                    </div>
+                    {% endwith %}
+                </td>
+                <td class="center"><span class="status-badge pending">Pending</span></td>
+            </tr>
+            {% endwith %}
+        {% empty %}
+            <tr><td colspan="7" class="empty-cell">No free tips posted yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="section-header">
+    <h2>💎 VIP Tips</h2>
+    <a href="{% url 'upgrade' %}" class="section-link">Unlock →</a>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th class="hide-mobile">Time</th>
+            <th>League</th>
+            <th>Match</th>
+            <th>Prediction</th>
+            <th class="center">Odds</th>
+            <th class="center hide-mobile">Type</th>
+            <th class="center">Access</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tip in vip_teaser %}
+            {% with leg=tip.legs.first %}
+            <tr class="vip-locked-row">
+                <td class="match-time hide-mobile">{{ leg.kickoff|default:tip.created_at|date:"H:i" }}</td>
+                <td>
+                    <div class="league-cell">
+                        <span class="flag"></span>
+                        <span class="league-name">{{ leg.league|default:"Premier Division" }}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="match-teams">{{ leg.fixture_text }}</div>
+                    <div class="match-time hide-mobile">{{ leg.kickoff|default:tip.created_at|date:"D, M d" }}</div>
+                </td>
+                <td><span class="prediction-tag tag-amber">{{ leg.prediction }}</span></td>
+                <td class="center odds-box">{{ leg.odds }}</td>
+                <td class="center hide-mobile"><span class="badge-vip">VIP</span></td>
+                <td class="center">
+                    <a href="{% url 'upgrade' %}" class="btn-lock">🔒 Upgrade</a>
+                </td>
+            </tr>
+            {% endwith %}
+        {% empty %}
+            <tr><td colspan="7" class="empty-cell">No VIP tips available.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="section-header">
+    <h2>🏁 Recent Results</h2>
+    <a href="{% url 'history' %}" class="section-link">Full History →</a>
+</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th class="hide-mobile">Date</th>
+            <th>Fixture</th>
+            <th class="center">Odds</th>
+            <th class="center hide-mobile">Stake</th>
+            <th class="center">Result</th>
+            <th class="right">Profit</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tip in recent_results %}
+            {% with leg=tip.legs.first %}
+            <tr class="clickable-row" data-href="{% url 'tip_detail' tip.id %}">
+                <td class="match-time hide-mobile">
+                    {{ tip.created_at|date:"M d" }}
+                    <div style="font-size:0.75rem;color:var(--text-muted);">{{ tip.created_at|date:"Y" }}</div>
+                </td>
+                <td>
+                    <div class="match-teams">{{ leg.fixture_text }}</div>
+                    <div class="match-time">
+                        {{ leg.prediction }} ·
+                        <span class="prediction-tag {% if tip.status == 'won' %}tag-green{% else %}tag-amber{% endif %}" style="font-size:0.7rem;padding:0.1rem 0.4rem;">
+                            {{ tip.status|upper }}
+                        </span>
+                    </div>
+                </td>
+                <td class="center odds-box">{{ tip.total_odds|default:leg.odds }}</td>
+                <td class="center hide-mobile">{{ tip.stake }}</td>
+                <td class="center">
+                    {% if tip.status == 'won' %}
+                        <span class="result-won">WON</span>
+                    {% else %}
+                        <span class="result-lost">LOST</span>
+                    {% endif %}
+                </td>
+                <td class="right {% if tip.profit > 0 %}profit-pos{% elif tip.profit < 0 %}profit-neg{% endif %}">
+                    {% if tip.profit > 0 %}+{% endif %}{{ tip.profit|floatformat:2 }}
+                </td>
+            </tr>
+            {% endwith %}
+        {% empty %}
+            <tr><td colspan="6" class="empty-cell">No settled tips yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="section-header">
+    <h2>🧮 Betting Calculator</h2>
+</div>
+
+<div class="detail-panel">
+    <div class="panel-body">
+        <form id="betting-calc" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:flex-end;">
+            <div>
+                <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.25rem;">Stake (units)</label>
+                <input type="number" name="stake" step="0.01" min="0" value="10" style="width:120px;padding:0.5rem;border:1px solid var(--border);border-radius:4px;">
+            </div>
+            <div>
+                <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.25rem;">Odds</label>
+                <input type="number" name="odds" step="0.01" min="1.01" value="1.85" style="width:120px;padding:0.5rem;border:1px solid var(--border);border-radius:4px;">
+            </div>
+            <button type="submit" class="btn btn-green" style="padding:0.5rem 1.25rem;">Calculate</button>
+        </form>
+        <div style="display:flex;gap:2.5rem;margin-top:1.25rem;">
+            <div>
+                <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Potential Return</div>
+                <div id="calc-return" style="font-size:1.6rem;font-weight:800;color:var(--text);margin-top:0.25rem;">18.50</div>
+            </div>
+            <div>
+                <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Net Profit</div>
+                <div id="calc-profit" style="font-size:1.6rem;font-weight:800;color:var(--green);margin-top:0.25rem;">8.50</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

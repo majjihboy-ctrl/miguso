@@ -1,0 +1,77 @@
+{% extends "predictions/base.html" %}
+
+{% block subnav %}
+<div class="sub-nav">
+    <div class="sub-nav-inner">
+        <a href="?bet_type=all" class="{% if bet_type == 'all' %}active{% endif %}">All Tips</a>
+        <a href="?bet_type=single" class="{% if bet_type == 'single' %}active{% endif %}">Singles</a>
+        <a href="?bet_type=accumulator" class="{% if bet_type == 'accumulator' %}active{% endif %}">Accumulators</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block title %}{{ tip_type|upper }} Tips — Matchday Pro{% endblock %}
+
+{% block content %}
+<div class="page-title">{{ tip_type|upper }} Football Tips</div>
+
+<table class="data-table">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>League</th>
+            <th>Fixture</th>
+            <th>Prediction</th>
+            <th class="center">Odds</th>
+            <th class="center hide-mobile">Type</th>
+            <th class="center">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for tip in tips %}
+            {% for leg in tip.legs.all %}
+            <tr>
+                <td class="match-time">{{ leg.kickoff|default:tip.created_at|date:"M d, H:i" }}</td>
+                <td>
+                    <div class="league-cell">
+                        <span class="flag"></span>
+                        {{ leg.league|default:"Premier Division" }}
+                    </div>
+                </td>
+                <td>
+                    <a href="{% url 'tip_detail' tip.id %}" class="match-teams" style="color:var(--text);">
+                        {{ leg.fixture_text }}
+                    </a>
+                    {% if tip.bet_type == 'accumulator' %}
+                        <div class="match-time">{{ tip.title|default:"Accumulator" }} · {{ tip.legs.count }} legs</div>
+                    {% endif %}
+                </td>
+                <td><span class="prediction-tag tag-green">{{ leg.prediction }}</span></td>
+                <td class="center odds-box">{{ leg.odds }}</td>
+                <td class="center hide-mobile">
+                    {% if tip.tip_type == 'vip' %}
+                        <span class="badge-vip">VIP</span>
+                    {% else %}
+                        <span style="font-size:0.75rem;color:var(--text-muted);">FREE</span>
+                    {% endif %}
+                </td>
+                <td class="center result-pending">Pending</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align:center;color:var(--text-muted);padding:1.5rem;">
+                    <a href="{% url 'tip_detail' tip.id %}" style="font-weight:600;">{{ tip.title|default:"Accumulator" }}</a>
+                    <div class="match-time">{{ tip.legs.count }} legs · @ {{ tip.total_odds }}</div>
+                </td>
+            </tr>
+            {% endfor %}
+        {% empty %}
+            <tr>
+                <td colspan="7" style="text-align:center;color:var(--text-muted);padding:3rem;">
+                    No {{ tip_type }} tips available right now.
+                </td>
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,31 @@
+<div class="tip-card {% if tip.tip_type == 'vip' %}vip{% endif %}">
+    <div class="tip-header">
+        <span class="badge type-{{ tip.tip_type }}">{{ tip.tip_type|upper }}</span>
+        <span class="badge bet-{{ tip.bet_type }}">{{ tip.bet_type|upper }}</span>
+        <span class="tip-date">{{ tip.created_at|date:"M d" }}</span>
+    </div>
+    <div class="tip-body">
+        {% if tip.bet_type == 'single' %}
+            {% with leg=tip.legs.first %}
+            <div class="fixture">{{ leg.fixture_text }}</div>
+            <div class="prediction">{{ leg.prediction }}</div>
+            <div class="odds led-display">@ {{ leg.odds }}</div>
+            {% endwith %}
+        {% else %}
+            <div class="acca-title">{{ tip.title|default:"Accumulator" }}</div>
+            <div class="acca-meta">{{ tip.legs.count }} Legs · <span class="led-display">@ {{ tip.total_odds }}</span></div>
+            <ul class="legs-preview">
+                {% for leg in tip.legs.all|slice:":3" %}
+                <li>{{ leg.fixture_text }} — {{ leg.prediction }}</li>
+                {% endfor %}
+                {% if tip.legs.count > 3 %}<li>+{{ tip.legs.count|add:"-3" }} more</li>{% endif %}
+            </ul>
+        {% endif %}
+    </div>
+    <div class="tip-footer">
+        <a href="{% url 'tip_detail' tip.id %}" class="btn-view">View Analysis</a>
+        {% if tip.status != 'pending' %}
+            <span class="status-badge {{ tip.status }}">{{ tip.status|upper }}</span>
+        {% endif %}
+    </div>
+</div>

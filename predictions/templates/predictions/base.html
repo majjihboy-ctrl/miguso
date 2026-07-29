@@ -1,0 +1,101 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{% block meta_desc %}Expert football predictions, free tips, VIP accumulators, and data-driven betting analysis.{% endblock %}">
+    <meta name="keywords" content="football predictions, betting tips, soccer tips, accumulator, over 2.5, btts">
+    <meta property="og:title" content="{% block og_title %}Matchday Pro{% endblock %}">
+    <meta property="og:description" content="{% block og_desc %}Professional football predictions and betting tips.{% endblock %}">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="{% static 'predictions/og-image.png' %}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="{% static 'predictions/og-image.png' %}">
+    <link rel="icon" type="image/png" href="{% static 'predictions/favicon.png' %}">
+    <link rel="canonical" href="{{ request.build_absolute_uri }}">
+    <link rel="manifest" href="{% static 'predictions/manifest.json' %}">
+    <meta name="theme-color" content="#16a34a">
+    <title>{% block title %}Matchday Pro{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'predictions/styles.css' %}">
+    {% block schema %}{% endblock %}
+</head>
+<body>
+
+<header class="site-header">
+    <div class="header-top">
+        <a href="{% url 'home' %}" class="logo">MATCHDAY<span>PRO</span></a>
+        <nav class="header-nav">
+            <a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">Home</a>
+            <a href="{% url 'tips_list' 'free' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'free' %}active{% endif %}">Free Tips</a>
+            <a href="{% url 'tips_list' 'vip' %}" class="{% if request.resolver_match.url_name == 'tips_list' and tip_type|default:'' == 'vip' %}active{% endif %}">VIP</a>
+            <a href="{% url 'history' %}">History</a>
+            <a href="{% url 'stats' %}">Stats</a>
+            {% if not user.is_authenticated or not user.profile.is_vip_active %}
+                <a href="{% url 'upgrade' %}" class="vip-link">Upgrade</a>
+            {% endif %}
+        </nav>
+        <div class="header-user">
+            {% if user.is_staff %}
+                <a href="/admin/" style="color:var(--gold);font-size:0.85rem;font-weight:600;">Admin</a>
+            {% endif %}
+            <button id="theme-toggle" class="theme-toggle" title="Toggle theme">🌙</button>
+            {% if user.is_authenticated %}
+                {% if user.profile.is_vip_active %}<span class="badge-vip">VIP</span>{% endif %}
+                <span>{{ user.username }}</span>
+                <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="color:rgba(255,255,255,0.6);font-size:0.8rem;background:none;border:none;cursor:pointer;">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}" style="color:#fff;font-size:0.85rem;">Login</a>
+            {% endif %}
+        </div>
+    </div>
+</header>
+
+{% if live_matches %}
+<div class="live-ticker">
+    <div class="ticker-label">LIVE</div>
+    <div class="ticker-wrap">
+        <div class="ticker-move">
+            {% for match in live_matches %}
+            <span class="ticker-item">
+                {{ match.home_team }} {{ match.home_score|default:"0" }} - {{ match.away_score|default:"0" }} {{ match.away_team }}
+                <span class="live-dot"></span>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% block subnav %}{% endblock %}
+
+<main class="container">
+    {% block content %}{% endblock %}
+</main>
+
+<footer class="site-footer">
+    Matchday Pro — Football Predictions & Betting Tips
+</footer>
+
+<div id="page-loader">
+    <div class="loader-content">
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text"></div>
+        <div class="skeleton skeleton-text" style="width:80%;"></div>
+    </div>
+</div>
+
+<script src="{% static 'predictions/app.js' %}"></script>
+</body>
+</html>

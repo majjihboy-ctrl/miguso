@@ -1,0 +1,127 @@
+{% extends "predictions/base.html" %}
+{% load predictions_extras %}
+
+{% block title %}Fixtures — Matchday{% endblock %}
+
+{% block content %}
+<div class="hero-banner">
+    <div class="pitch-stripes"></div>
+    <h1>Upcoming Fixtures</h1>
+    <p class="hero-subtitle">Predict the score. Beat the model. Climb the leaderboard.</p>
+</div>
+
+<section class="fixtures-section">
+    <h2 class="section-title">📅 Upcoming Matches</h2>
+
+    {% if upcoming %}
+    <div class="fixtures-grid">
+        {% for match in upcoming %}
+        <div class="fixture-card" data-match-id="{{ match.id }}">
+            <div class="fixture-header">
+                <span class="league-badge">{{ match.league.name }}</span>
+                <span class="kickoff-time">{{ match.kickoff|date:"D, M d — H:i" }}</span>
+            </div>
+
+            <div class="fixture-teams">
+                <div class="team home">
+                    <div class="team-crest" style="background-color: {{ match.home_team.crest_color }}"></div>
+                    <span class="team-name">{{ match.home_team.name }}</span>
+                </div>
+
+                <div class="fixture-scoreboard">
+                    <div class="model-predictions">
+                        <div class="pred-bar">
+                            <div class="pred-fill home" style="width: {{ match.pred_home_win|default:0|floatformat:1 }}%"></div>
+                            <div class="pred-fill draw" style="width: {{ match.pred_draw|default:0|floatformat:1 }}%"></div>
+                            <div class="pred-fill away" style="width: {{ match.pred_away_win|default:0|floatformat:1 }}%"></div>
+                        </div>
+                        <div class="pred-labels">
+                            <span>H {{ match.pred_home_win|default:0|floatformat:0 }}%</span>
+                            <span>D {{ match.pred_draw|default:0|floatformat:0 }}%</span>
+                            <span>A {{ match.pred_away_win|default:0|floatformat:0 }}%</span>
+                        </div>
+                        <div class="expected-goals">
+                            <span class="eg-home">{{ match.pred_home_goals|default:0|floatformat:1 }}</span>
+                            <span class="eg-sep">—</span>
+                            <span class="eg-away">{{ match.pred_away_goals|default:0|floatformat:1 }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="team away">
+                    <span class="team-name">{{ match.away_team.name }}</span>
+                    <div class="team-crest" style="background-color: {{ match.away_team.crest_color }}"></div>
+                </div>
+            </div>
+
+            {% if user.is_authenticated %}
+            <div class="prediction-form-wrapper">
+                {% with pred=user_predictions|get_item:match.id %}
+                <form method="post" action="{% url 'predict' match.id %}" class="prediction-form" data-ajax="true">
+                    {% csrf_token %}
+                    <div class="score-inputs">
+                        <input type="number" name="predicted_home_score" min="0" max="20"
+                               value="{{ pred.predicted_home_score|default:'' }}"
+                               class="score-input led-display" placeholder="-" required>
+                        <span class="score-separator">:</span>
+                        <input type="number" name="predicted_away_score" min="0" max="20"
+                               value="{{ pred.predicted_away_score|default:'' }}"
+                               class="score-input led-display" placeholder="-" required>
+                    </div>
+                    <button type="submit" class="btn-predict">
+                        {% if pred %}Update{% else %}Predict{% endif %}
+                    </button>
+                </form>
+                {% endwith %}
+            </div>
+            {% else %}
+            <div class="login-prompt">
+                <a href="{% url 'login' %}?next={{ request.path }}">Login to predict</a>
+            </div>
+            {% endif %}
+
+            {% if user.is_staff %}
+            <div class="staff-actions">
+                <a href="{% url 'enter_result' match.id %}" class="btn-staff">Enter Result</a>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state">No upcoming fixtures scheduled.</p>
+    {% endif %}
+</section>
+
+<section class="fixtures-section finished">
+    <h2 class="section-title">🏁 Recent Results</h2>
+
+    {% if finished %}
+    <div class="fixtures-grid">
+        {% for match in finished %}
+        <div class="fixture-card finished">
+            <div class="fixture-header">
+                <span class="league-badge">{{ match.league.name }}</span>
+                <span class="kickoff-time">{{ match.kickoff|date:"D, M d" }}</span>
+            </div>
+            <div class="fixture-teams result">
+                <div class="team home">
+                    <div class="team-crest" style="background-color: {{ match.home_team.crest_color }}"></div>
+                    <span class="team-name">{{ match.home_team.name }}</span>
+                </div>
+                <div class="final-score led-display">
+                    {{ match.home_score }} — {{ match.away_score }}
+                </div>
+                <div class="team away">
+                    <span class="team-name">{{ match.away_team.name }}</span>
+                    <div class="team-crest" style="background-color: {{ match.away_team.crest_color }}"></div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-state">No finished matches yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

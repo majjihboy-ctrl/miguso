@@ -1,0 +1,12 @@
+.venv/
+.idea/
+__pycache__/
+*.pyc
+*.sqlite3
+logs/
+.git/
+staticfiles/
+docker_compose.yml
+dockerfile
+nginx.config
+.env

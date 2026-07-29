@@ -1,0 +1,16 @@
+{
+  "name": "Matchday Pro",
+  "short_name": "Matchday",
+  "description": "Expert football predictions, free tips, and VIP accumulators.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#16a34a",
+  "icons": [
+    {
+      "src": "/static/predictions/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
