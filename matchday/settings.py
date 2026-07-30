@@ -123,37 +123,66 @@ SECURE_HSTS_PRELOAD = not DEBUG
 SESSION_ENGINE = "django.contrib.sessions.backends.db"
 SESSION_COOKIE_AGE = 1209600
 
-# Redis cache. Points at localhost by default for local dev; in production
-# (Vercel or anywhere else) set REDIS_URL to a real managed Redis instance
-# (e.g. Upstash via the Vercel Marketplace) — there is no local Redis
-# process available inside a Vercel serverless function.
-REDIS_URL = config("REDIS_URL", default="redis://127.0.0.1:6379/1")
-_connection_pool_kwargs = {
-    "protocol": 2,  # This forces Redis to skip the HELLO command
-}
-if REDIS_URL.startswith("rediss://"):
-    # Most managed providers (Upstash included) terminate TLS with a cert
-    # that Python's default verification is picky about from inside
-    # serverless runtimes. Relaxing verification here is the commonly
-    # recommended workaround for django-redis + rediss://.
-    # NOTE: previously this key was re-declared via a `**{...}` unpack
-    # inside the same dict literal, which (since it's the same key,
-    # "CONNECTION_POOL_KWARGS") silently overwrote the dict above instead
-    # of merging into it — protocol=2 was being lost on every rediss://
-    # connection. Building the dict in two steps and updating it instead
-    # keeps both settings.
-    _connection_pool_kwargs["ssl_cert_reqs"] = None
+# --------------------------------------------------------------------------
+# Cache (Redis, with a safe local-memory fallback)
+#
+# REDIS_URL is left unset by default now (rather than defaulting to
+# 127.0.0.1) because there is no local Redis process available inside a
+# Vercel serverless function — pointing at localhost there just guarantees
+# a ConnectionRefusedError on every single request that touches the cache.
+#
+# - Locally: set REDIS_URL in your .env (or leave it unset to use LocMemCache
+#   for local dev too).
+# - In production (Vercel or anywhere else): set REDIS_URL to a real managed
+#   Redis instance, e.g. Upstash via the Vercel Marketplace
+#   (rediss://default:<password>@<host>.upstash.io:6379).
+#
+# If REDIS_URL is missing entirely, we fall back to Django's local-memory
+# cache instead of crashing the whole site — a misconfigured/missing env
+# var should degrade gracefully, not 500 every page.
+# --------------------------------------------------------------------------
+REDIS_URL = config("REDIS_URL", default=None)
 
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": REDIS_URL,
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": _connection_pool_kwargs,
+if REDIS_URL:
+    _connection_pool_kwargs = {
+        "protocol": 2,  # This forces Redis to skip the HELLO command
+    }
+    if REDIS_URL.startswith("rediss://"):
+        # Most managed providers (Upstash included) terminate TLS with a
+        # cert that Python's default verification is picky about from
+        # inside serverless runtimes. Relaxing verification here is the
+        # commonly recommended workaround for django-redis + rediss://.
+        # NOTE: previously this key was re-declared via a `**{...}` unpack
+        # inside the same dict literal, which (since it's the same key,
+        # "CONNECTION_POOL_KWARGS") silently overwrote the dict above
+        # instead of merging into it — protocol=2 was being lost on every
+        # rediss:// connection. Building the dict in two steps and
+        # updating it instead keeps both settings.
+        _connection_pool_kwargs["ssl_cert_reqs"] = None
+
+    CACHES = {
+        "default": {
+            "BACKEND": "django_redis.cache.RedisCache",
+            "LOCATION": REDIS_URL,
+            "OPTIONS": {
+                "CLIENT_CLASS": "django_redis.client.DefaultClient",
+                "CONNECTION_POOL_KWARGS": _connection_pool_kwargs,
+                # If Redis is unreachable (wrong URL, provider outage,
+                # cold-start race, etc.) log it and return None instead of
+                # raising — a cache miss should never take the homepage
+                # down. Pairs with DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS
+                # below so these still show up in the "predictions" logger.
+                "IGNORE_EXCEPTIONS": True,
+            },
         }
     }
-}
+    DJANGO_REDIS_LOG_IGNORED_EXCEPTIONS = True
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        }
+    }
 
 # Stripe
 STRIPE_PUBLISHABLE_KEY = config("STRIPE_PUBLISHABLE_KEY", default="")
